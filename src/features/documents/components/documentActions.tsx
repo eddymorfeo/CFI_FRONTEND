@@ -3,15 +3,16 @@ import DownloadIcon from "@mui/icons-material/Download";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { CircularProgress, IconButton, Stack, Tooltip } from "@mui/material";
-import type { AxiosError } from "axios";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
+
 import {
   deleteDocument,
   exportCartolaBancaria,
   processDocument,
 } from "../services/documentsApi";
+import { getDocumentErrorMessage } from "../services/documentErrors";
 
 interface DocumentActionsProps {
   sourceDocumentId: string;
@@ -43,12 +44,10 @@ export function DocumentActions({
         showConfirmButton: false,
       });
     } catch (error: unknown) {
-      const axiosError = error as AxiosError<{ detail?: string }>;
-
       await Swal.fire({
         icon: "error",
         title: "Error al procesar",
-        text: axiosError.response?.data?.detail ?? "No se pudo procesar el documento.",
+        text: getDocumentErrorMessage(error),
       });
     } finally {
       setIsProcessing(false);
@@ -72,6 +71,7 @@ export function DocumentActions({
       setIsDeleting(true);
 
       await deleteDocument(sourceDocumentId);
+
       onDeleted();
 
       await Swal.fire({
@@ -82,12 +82,10 @@ export function DocumentActions({
         showConfirmButton: false,
       });
     } catch (error: unknown) {
-      const axiosError = error as AxiosError<{ detail?: string }>;
-
       await Swal.fire({
         icon: "error",
         title: "Error al eliminar",
-        text: axiosError.response?.data?.detail ?? "No se pudo eliminar el documento.",
+        text: getDocumentErrorMessage(error),
       });
     } finally {
       setIsDeleting(false);
@@ -100,34 +98,36 @@ export function DocumentActions({
   }
 
   return (
-    <Stack direction="row" spacing={0.5} sx={{ width: "100%", justifyContent: "flex-start" }}>
+    <Stack direction="row" spacing={1}>
       <Tooltip title="Ver detalle">
-        <span>
-          <IconButton component={Link} to={`/documents/${sourceDocumentId}`}>
-            <VisibilityIcon />
-          </IconButton>
-        </span>
+        <IconButton component={Link} to={`/documents/${sourceDocumentId}`}>
+          <VisibilityIcon />
+        </IconButton>
       </Tooltip>
 
       <Tooltip title="Procesar documento">
         <span>
-          <IconButton onClick={handleProcessDocument} disabled={isProcessing || isDeleting}>
+          <IconButton
+            onClick={() => void handleProcessDocument()}
+            disabled={isProcessing}
+          >
             {isProcessing ? <CircularProgress size={20} /> : <PlayArrowIcon />}
           </IconButton>
         </span>
       </Tooltip>
 
       <Tooltip title="Exportar cartola bancaria">
-        <span>
-          <IconButton onClick={handleExport} disabled={isProcessing || isDeleting}>
-            <DownloadIcon />
-          </IconButton>
-        </span>
+        <IconButton onClick={handleExport}>
+          <DownloadIcon />
+        </IconButton>
       </Tooltip>
 
       <Tooltip title="Eliminar documento">
         <span>
-          <IconButton onClick={handleDeleteDocument} disabled={isProcessing || isDeleting}>
+          <IconButton
+            onClick={() => void handleDeleteDocument()}
+            disabled={isDeleting}
+          >
             {isDeleting ? <CircularProgress size={20} /> : <DeleteIcon />}
           </IconButton>
         </span>

@@ -8,7 +8,9 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import Swal from "sweetalert2";
+
 import { uploadDocument } from "../services/documentsApi";
+import { getDocumentErrorMessage } from "../services/documentErrors";
 import type { SourceDocument } from "../types/documentTypes";
 
 interface DocumentUploadFormProps {
@@ -20,7 +22,14 @@ export function DocumentUploadForm({ onUploaded }: DocumentUploadFormProps) {
   const [isUploading, setIsUploading] = useState(false);
 
   async function handleUpload() {
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      await Swal.fire({
+        icon: "warning",
+        title: "Archivo requerido",
+        text: "Debes seleccionar un archivo antes de subirlo.",
+      });
+      return;
+    }
 
     try {
       setIsUploading(true);
@@ -37,11 +46,11 @@ export function DocumentUploadForm({ onUploaded }: DocumentUploadFormProps) {
         timer: 2000,
         showConfirmButton: false,
       });
-    } catch {
+    } catch (error: unknown) {
       await Swal.fire({
         icon: "error",
-        title: "Error",
-        text: "No se pudo cargar el documento.",
+        title: "Error al cargar documento",
+        text: getDocumentErrorMessage(error),
       });
     } finally {
       setIsUploading(false);
@@ -49,26 +58,33 @@ export function DocumentUploadForm({ onUploaded }: DocumentUploadFormProps) {
   }
 
   return (
-    <Paper sx={{ p: 3, mb: 3 }}>
+    <Paper sx={{ p: 3 }}>
       <Stack spacing={2}>
         <Typography variant="h6">Cargar cartola bancaria</Typography>
 
-        <Button variant="outlined" component="label" disabled={isUploading}>
-          Seleccionar archivo PDF
-          <input
-            hidden
-            type="file"
-            accept=".pdf,.csv,.xls,.xlsx"
-            onChange={(event) => {
-              const file = event.target.files?.[0] ?? null;
-              setSelectedFile(file);
-            }}
-          />
-        </Button>
+        <Box>
+          <Button
+            component="label"
+            variant="outlined"
+            fullWidth
+            disabled={isUploading}
+          >
+            Seleccionar archivo PDF
+            <input
+              hidden
+              type="file"
+              accept=".pdf,.xlsx,.xls,.csv"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                setSelectedFile(file);
+              }}
+            />
+          </Button>
+        </Box>
 
         {selectedFile && (
           <Typography variant="body2">
-            Archivo seleccionado: <strong>{selectedFile.name}</strong>
+            <strong>Archivo seleccionado:</strong> {selectedFile.name}
           </Typography>
         )}
 
@@ -81,16 +97,16 @@ export function DocumentUploadForm({ onUploaded }: DocumentUploadFormProps) {
           </Box>
         )}
 
-        <Box>
-          <Button
-            variant="contained"
-            onClick={handleUpload}
-            disabled={!selectedFile || isUploading}
-          >
-            Subir documento
-          </Button>
-        </Box>
+        
       </Stack>
+      <Button
+          sx={{mt:2}}
+          variant="contained"
+          onClick={() => void handleUpload()}
+          disabled={!selectedFile || isUploading}
+        >
+          Subir documento
+        </Button>
     </Paper>
   );
 }

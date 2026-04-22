@@ -1,7 +1,16 @@
 import { Box, Chip, Paper, TextField, Typography } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
-import type { GridColDef, GridPaginationModel, GridRenderCellParams } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridFooterContainer,
+  GridPagination,
+} from "@mui/x-data-grid";
+import type {
+  GridColDef,
+  GridPaginationModel,
+  GridRenderCellParams,
+} from "@mui/x-data-grid";
 import { useMemo, useState } from "react";
+
 import { DocumentActions } from "./documentActions";
 import type { SourceDocument } from "../types/documentTypes";
 
@@ -14,21 +23,89 @@ function buildStatusChip(status: string) {
   const normalizedStatus = status.toUpperCase();
 
   if (normalizedStatus === "PROCESSED") {
-    return <Chip label={status} color="success" size="small" />;
+    return (
+      <Chip
+        label="PROCESSED"
+        size="small"
+        sx={{
+          backgroundColor: "#2e7d32",
+          color: "#ffffff",
+          fontWeight: 700,
+        }}
+      />
+    );
   }
 
   if (normalizedStatus === "PENDING") {
-    return <Chip label={status} color="warning" size="small" />;
+    return (
+      <Chip
+        label="PENDING"
+        size="small"
+        sx={{
+          backgroundColor: "#ed6c02",
+          color: "#ffffff",
+          fontWeight: 700,
+        }}
+      />
+    );
   }
 
   if (normalizedStatus === "FAILED") {
-    return <Chip label={status} color="error" size="small" />;
+    return (
+      <Chip
+        label="FAILED"
+        size="small"
+        sx={{
+          backgroundColor: "#d32f2f",
+          color: "#ffffff",
+          fontWeight: 700,
+        }}
+      />
+    );
   }
 
-  return <Chip label={status} variant="outlined" size="small" />;
+  return <Chip label={status || "-"} size="small" variant="outlined" />;
 }
 
-export function DocumentsTable({ documents, onRefresh }: DocumentsTableProps) {
+interface CustomFooterProps {
+  totalRows: number;
+  page: number;
+  pageSize: number;
+}
+
+function CustomFooter({ totalRows, page, pageSize }: CustomFooterProps) {
+  const paginatedCountStart = totalRows === 0 ? 0 : page * pageSize + 1;
+  const paginatedCountEnd =
+    totalRows === 0 ? 0 : Math.min((page + 1) * pageSize, totalRows);
+
+  return (
+    <GridFooterContainer
+      sx={{
+        minHeight: 56,
+        px: 2,
+        py: 1,
+        borderTop: "1px solid",
+        borderColor: "divider",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 2,
+        flexWrap: { xs: "wrap", md: "nowrap" },
+      }}
+    >
+      <Typography variant="body2" color="text.secondary">
+        Mostrando {paginatedCountStart} a {paginatedCountEnd} de {totalRows} registros
+      </Typography>
+
+      <GridPagination />
+    </GridFooterContainer>
+  );
+}
+
+export function DocumentsTable({
+  documents,
+  onRefresh,
+}: DocumentsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
@@ -43,21 +120,13 @@ export function DocumentsTable({ documents, onRefresh }: DocumentsTableProps) {
     }
 
     return documents.filter((document) =>
-      document.original_file_name.toLowerCase().includes(normalizedSearchTerm),
+      document.original_file_name
+        .toLowerCase()
+        .includes(normalizedSearchTerm),
     );
   }, [documents, searchTerm]);
 
-  const paginatedCountStart =
-    filteredDocuments.length === 0
-      ? 0
-      : paginationModel.page * paginationModel.pageSize + 1;
-
-  const paginatedCountEnd = Math.min(
-    (paginationModel.page + 1) * paginationModel.pageSize,
-    filteredDocuments.length,
-  );
-
-  const columns: GridColDef<SourceDocument>[] = [
+  const columns: GridColDef[] = [
     {
       field: "original_file_name",
       headerName: "Archivo",
@@ -79,7 +148,8 @@ export function DocumentsTable({ documents, onRefresh }: DocumentsTableProps) {
       flex: 1.2,
       minWidth: 190,
       sortable: true,
-      valueGetter: (_value, row) => row.detected_document_type ?? row.detected_document_group ?? "-",
+      valueGetter: (_value, row) =>
+        row.detected_document_type ?? row.detected_document_group ?? "-",
     },
     {
       field: "file_extension",
@@ -94,8 +164,8 @@ export function DocumentsTable({ documents, onRefresh }: DocumentsTableProps) {
       flex: 0.9,
       minWidth: 150,
       sortable: true,
-      renderCell: (params: GridRenderCellParams<SourceDocument, string>) =>
-        buildStatusChip(params.value ?? ""),
+      renderCell: (params: GridRenderCellParams) =>
+        buildStatusChip(String(params.value ?? "")),
     },
     {
       field: "uploaded_at",
@@ -123,22 +193,22 @@ export function DocumentsTable({ documents, onRefresh }: DocumentsTableProps) {
   ];
 
   return (
-    <Paper sx={{ p: 2 }}>
+    <Paper sx={{ p: 3 }}>
       <Box
         sx={{
           mb: 2,
           display: "flex",
-          flexDirection: { xs: "column", md: "row" },
+          alignItems: { xs: "stretch", md: "center" },
           justifyContent: "space-between",
           gap: 2,
-          alignItems: { xs: "stretch", md: "center" },
+          flexDirection: { xs: "column", md: "row" },
         }}
       >
         <Typography variant="h6">Documentos cargados</Typography>
 
         <TextField
+          placeholder="Buscar por nombre de archivo"
           size="small"
-          label="Buscar por nombre de archivo"
           value={searchTerm}
           onChange={(event) => {
             setSearchTerm(event.target.value);
@@ -151,40 +221,47 @@ export function DocumentsTable({ documents, onRefresh }: DocumentsTableProps) {
         />
       </Box>
 
-      <Box sx={{ height: 520, width: "100%" }}>
-        <DataGrid
-          rows={filteredDocuments}
-          columns={columns}
-          getRowId={(row) => row.source_document_id}
-          disableRowSelectionOnClick
-          pagination
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          pageSizeOptions={[10, 25, 50]}
-          sortingOrder={["asc", "desc"]}
-          localeText={{
-            noRowsLabel: "No hay documentos cargados.",
-            footerRowSelected: (count) =>
-              count !== 1 ? `${count.toString()} filas seleccionadas` : "1 fila seleccionada",
-          }}
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaders": {
-              backgroundColor: "#f8fafc",
-              fontWeight: 700,
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-          }}
-        />
-      </Box>
-
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="body2" color="text.secondary">
-          Mostrando {paginatedCountStart} a {paginatedCountEnd} de {filteredDocuments.length} registros
-        </Typography>
-      </Box>
+      <DataGrid
+        autoHeight
+        rows={filteredDocuments}
+        columns={columns}
+        getRowId={(row) => row.source_document_id}
+        disableRowSelectionOnClick
+        pagination
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        pageSizeOptions={[10, 25, 50]}
+        sortingOrder={["asc", "desc"]}
+        localeText={{
+          noRowsLabel: "No hay documentos cargados.",
+          footerRowSelected: (count) =>
+            count !== 1
+              ? `${count.toString()} filas seleccionadas`
+              : "1 fila seleccionada",
+        }}
+        slots={{
+          footer: () => (
+            <CustomFooter
+              totalRows={filteredDocuments.length}
+              page={paginationModel.page}
+              pageSize={paginationModel.pageSize}
+            />
+          ),
+        }}
+        sx={{
+          border: 0,
+          "& .MuiDataGrid-columnHeaders": {
+            backgroundColor: "#f8fafc",
+            fontWeight: 700,
+          },
+          "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
+            outline: "none",
+          },
+          "& .MuiDataGrid-footerContainer": {
+            borderTop: "none",
+          },
+        }}
+      />
     </Paper>
   );
 }
