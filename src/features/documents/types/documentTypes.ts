@@ -10,6 +10,7 @@ export interface SourceDocument {
   processing_status: string;
   review_status: string;
   source_origin: string;
+  extracted_movements_count: number;
   detected_institution_name?: string | null;
   detected_document_group?: string | null;
   detected_document_type?: string | null;
