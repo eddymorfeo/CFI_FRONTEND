@@ -4,10 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 127.0.0.1 --port 5174 --strictPort",
+    "dev:network": "vite --host 0.0.0.0 --port 5174 --strictPort",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "vite preview --host 0.0.0.0 --port 5173 --strictPort"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
